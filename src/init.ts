@@ -66,6 +66,9 @@ const hooks: Array<keyof Module> = [
   "post",
 ];
 
+/**
+ * 初始化
+ */ 
 export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
   let i: number;
   let j: number;
@@ -96,8 +99,11 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
    * @returns 
    */
   function emptyNodeAt(elm: Element) {
+    // 是否有 id 属性
     const id = elm.id ? "#" + elm.id : "";
+    // 得到 class 属性
     const c = elm.className ? "." + elm.className.split(" ").join(".") : "";
+    // 返回一个空 vnode ,并且 与 elm 绑定
     return vnode(
       api.tagName(elm).toLowerCase() + id + c,
       {},
@@ -232,6 +238,7 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
           }
         } else {
           // Text node
+          // 移除 text 
           api.removeChild(parentElm, ch.elm!);
         }
       }
@@ -265,6 +272,7 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
     let before: any;
 
     while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
+      // 先对一些空值验证
       if (oldStartVnode == null) {
         oldStartVnode = oldCh[++oldStartIdx]; // Vnode might have been moved left
       } else if (oldEndVnode == null) {
@@ -280,7 +288,7 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
         oldStartVnode = oldCh[++oldStartIdx];
         newStartVnode = newCh[++newStartIdx];
       } else 
-      // 旧结束 vnode 和结束 vnode 对比
+      // 旧结束 vnode 和新结束 vnode 对比
       if (sameVnode(oldEndVnode, newEndVnode)) {
         patchVnode(oldEndVnode, newEndVnode, insertedVnodeQueue);
         oldEndVnode = oldCh[--oldEndIdx];
@@ -345,6 +353,7 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
             api.insertBefore(parentElm, elmToMove.elm!, oldStartVnode.elm!);
           }
         }
+        // 指针向后移动
         newStartVnode = newCh[++newStartIdx];
       }
     }
@@ -365,6 +374,15 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
     }
   }
 
+  /**
+   * 在 patchVnode 函数中，进行 新vnode.text 判断是否为undefined，新的 vnode.text === undefined (vonde.children 一般有值)，新的 vnode.text !== undefined (vonde.children 无值)。
+   * vonde.children 无值时候，直接移除旧的 children. 设置新的text.
+   * vonde.children 有值时候，新旧都有 childen，则会进行updateChildren。否则就进行新老节点是否有children,来进行 children 的添加删除，和设置text。
+   * @param oldVnode 
+   * @param vnode 
+   * @param insertedVnodeQueue 
+   * @returns 
+   */
   function patchVnode(
     oldVnode: VNode,
     vnode: VNode,
@@ -394,11 +412,12 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
     if (isUndef(vnode.text)) {
       // 新旧都有 childen
       if (isDef(oldCh) && isDef(ch)) {
+        // 更新 children
         if (oldCh !== ch) updateChildren(elm, oldCh, ch, insertedVnodeQueue);
 
         // else: 新有 childen  旧无 childen （旧 text 有）
       } else if (isDef(ch)) {
-        // 清空 text 
+        // 如果 旧 childen 有 text 清空 text 
         if (isDef(oldVnode.text)) api.setTextContent(elm, "");
         // 添加 children
         addVnodes(elm, null, ch, 0, ch.length - 1, insertedVnodeQueue);
@@ -427,11 +446,21 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
     hook?.postpatch?.(oldVnode, vnode);
   }
 
-  // 返回一个 patch 函数
+
+  /**
+   * 返回一个 patch 函数
+   * patch 中主要进行了:patchVnode. 。
+    patch 过程：
+    1. 先对第一个参数判断是否为 vnode. 不是创建一个空的 vnode ，关联到这个 DOM 元素
+    2. 是一个vnode,则对oldVnode 与 vnode 通过 sameVnode 进行判断,是否是相同的vnode.
+    3. 是相同的 vnode 则进行 patchVnode。
+    4. 不相同就直接删除vnode,重建
+   */
   return function patch(oldVnode: VNode | Element, vnode: VNode): VNode {
     let i: number, elm: Node, parent: Node;
     const insertedVnodeQueue: VNodeQueue = [];
-    // 执行 pre hook 
+    //cbs 回调
+    // 执行 pre hook  即调用不同的生命周期
     for (i = 0; i < cbs.pre.length; ++i) cbs.pre[i]();
 
     // 第一个参数不是 vnode 
@@ -439,9 +468,9 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
       // 创建一个空的 vnode ，关联到这个 DOM 元素
       oldVnode = emptyNodeAt(oldVnode);
     }
-
+    // sameVnode 比较 oldVnode 与 vnode 是否相同
     if (sameVnode(oldVnode, vnode)) {
-      // 相同的 vnode 
+      // 相同的 vnode （key 与 sel 与 data?.is 都相等 ）
       // vnode 对比
       patchVnode(oldVnode, vnode, insertedVnodeQueue);
     } else {
@@ -451,6 +480,7 @@ export function init(modules: Array<Partial<Module>>, domApi?: DOMAPI) {
       // 重建
       createElm(vnode, insertedVnodeQueue);
       if (parent !== null) {
+        //
         api.insertBefore(parent, vnode.elm!, api.nextSibling(elm));
 
         // 删除

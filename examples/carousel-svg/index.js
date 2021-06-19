@@ -112,8 +112,12 @@ const view = () =>
     ),
   ]);
 
+// DOM 渲染完即可执行，此时图片、视频还可能没有加载完
 window.addEventListener("DOMContentLoaded", () => {
+  // 得到 container
   const container = document.getElementById("container");
   vnode = patch(container, view(data));
   render();
 });
+
+

@@ -35,6 +35,15 @@ export interface VNodeData {
   [key: string]: any; // for any other 3rd party module
 }
 
+/**
+ * 返回 vnode 对象
+ * @param sel 
+ * @param data 
+ * @param children 
+ * @param text 
+ * @param elm  vnode 对应的 dom 元素
+ * @returns 
+ */
 export function vnode(
   sel: string | undefined,
   data: any | undefined,
@@ -42,7 +51,9 @@ export function vnode(
   text: string | undefined,
   elm: Element | Text | undefined
 ): VNode {
+  
   const key = data === undefined ? undefined : data.key;
   // 返回一个 vnode 对象
+  // children 与 text 是不能共存的
   return { sel, data, children, text, elm, key };
 }

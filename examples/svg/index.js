@@ -4,6 +4,8 @@ const patch = init([attributesModule]);
 
 window.addEventListener("DOMContentLoaded", () => {
   const container = document.getElementById("container");
+  // 执行 h 函数
+  // /src/h.ts   返回一个 vnode
   const vnode = h("div", [
     h("svg", { attrs: { width: 100, height: 100 } }, [
       h("circle", {
@@ -18,5 +20,7 @@ window.addEventListener("DOMContentLoaded", () => {
       }),
     ]),
   ]);
+  
+  // 执行patch  在 /src/init.ts
   patch(container, vnode);
 });
